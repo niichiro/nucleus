@@ -1,0 +1,36 @@
+
+---
+
+### 📄 .gitignore
+
+```gitignore
+# Rust
+target/
+debug/
+**/*.rs.bk
+*.pdb
+
+# Cargo
+.cargo/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Сгенерированные файлы и чувствительные данные
+*.log
+*.pem
+*.key
+.env
+secrets/
+
+# Специфичные для нашего проекта
+nucleusd/*.db
+nucleusd/*.db-journal
