@@ -1,0 +1,17 @@
+[package]
+name = "nucleus-mesh"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+# Для сериализации пакетов
+serde = { workspace = true, default-features = false, features = ["alloc"] }
+postcard = { version = "1", default-features = false, features = ["alloc"] }
+
+# Для Noise-рукопожатия
+snow = { version = "0.10", default-features = false }
+
+# Для тестов на ПК (условно)
+[target.'cfg(not(target_arch = "riscv32"))'.dev-dependencies]
+tracing = { workspace = true }

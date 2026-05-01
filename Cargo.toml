@@ -1,0 +1,31 @@
+[workspace]
+resolver = "2"
+members = [
+    "nucleusd",
+    "nucleus-mesh",
+    "nucleus-app",
+]
+# Исключим simulation/ из рабочего пространства, если он появится,
+# или добавим позже.
+# Для nucleus-node потребуется отдельное workspace из-за no_std и esp-idf,
+# его добавим, когда придёт железо.
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/niichiro/nucleus"
+
+[workspace.dependencies]
+# Общие зависимости, которые могут использоваться разными крейтами.
+# Пока объявим самые необходимые.
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1"
+tracing = "0.1"
+thiserror = "1"
+
+# Профили сборки для оптимизации
+[profile.release]
+opt-level = "s"   # маленький размер — хорошо для встраиваемых устройств
+lto = true
+codegen-units = 1
