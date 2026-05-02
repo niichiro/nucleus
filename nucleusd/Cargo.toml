@@ -6,10 +6,13 @@ license.workspace = true
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
+bluer = { version = "0.17", features = ["full"] }  # BLE
 axum = "0.8"                         # HTTP + WebSocket
 tower = "0.5"                        # middleware
 serde = { workspace = true }
 serde_json.workspace = true
+postcard = { version = "1", features = ["alloc"] }  # компактная бинарная сериализация для команд
+uuid = { version = "1", features = ["v4", "macro-diagnostics"] }         # генерация UUID сервиса
 tracing = { workspace = true }
 tracing-subscriber = "0.3"          # вывод логов
 tracing-appender = "0.2"           # rolling logs
@@ -17,8 +20,5 @@ anyhow = "1"                        # удобная обработка ошиб
 mdns-sd = "0.19"                     # mDNS
 rumqttc = "0.25"                    # MQTT клиент
 thiserror = "2"
-
-# CRDT (пока используем automerge, потом можно заменить на легковесный)
-automerge = "0.9"
 
 nucleus-mesh = { path = "../nucleus-mesh" }

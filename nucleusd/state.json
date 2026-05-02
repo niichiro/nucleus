@@ -1,0 +1,30 @@
+{
+  "devices": {
+    "lamp.living_room": {
+      "id": "lamp:living",
+      "kind": "lamp",
+      "name": "Лампа в гостиной",
+      "state": {
+        "on": false,
+        "brightness": 100
+      }
+    },
+    "lamp.kitchen": {
+      "id": "lamp:kitchen",
+      "kind": "lamp",
+      "name": "Лампа на кухне",
+      "state": {
+        "on": false,
+        "brightness": 100
+      }
+    }
+  },
+  "scenes": {
+    "evening": {
+      "name": "Вечер",
+      "devices": {
+        "lamp.living_room": { "on": true, "brightness": 50 }
+      }
+    }
+  }
+}
