@@ -1,0 +1,5 @@
+curl.exe -X POST http://localhost:3000/api/devices/lamp:living/set -H "Content-Type: application/json" -d '{"""on""": true }'
+
+ip route show | grep default | awk '{print $3}'
+
+curl -X POST http://172.24.80.1:3000/api/devices/lamp:living/set   -H "Content-Type: application/json"   -d '{"on": true}'

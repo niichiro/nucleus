@@ -6,18 +6,19 @@ license.workspace = true
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
-axum = "0.7"                         # HTTP + WebSocket
-tower = "0.4"                        # middleware
+axum = "0.8"                         # HTTP + WebSocket
+tower = "0.5"                        # middleware
 serde = { workspace = true }
 serde_json.workspace = true
 tracing = { workspace = true }
 tracing-subscriber = "0.3"          # вывод логов
 tracing-appender = "0.2"           # rolling logs
 anyhow = "1"                        # удобная обработка ошибок
-mdns-sd = "0.9"                     # mDNS
-rumqttc = "0.24"                    # MQTT клиент
+mdns-sd = "0.19"                     # mDNS
+rumqttc = "0.25"                    # MQTT клиент
+thiserror = "2"
 
 # CRDT (пока используем automerge, потом можно заменить на легковесный)
-automerge = "0.6"
+automerge = "0.9"
 
 nucleus-mesh = { path = "../nucleus-mesh" }
