@@ -6,7 +6,7 @@ license.workspace = true
 
 [dependencies]
 # Для сериализации пакетов
-serde = { workspace = true, default-features = false, features = ["alloc"] }
+serde = { workspace = true, default-features = false, features = ["alloc", "derive"] }
 postcard = { version = "1", default-features = false, features = ["alloc"] }
 
 # Для Noise-рукопожатия

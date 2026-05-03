@@ -1,11 +1,8 @@
-// //! Nucleus mesh protocol: packet formats, routing, Noise encryption.
-// #![no_std]
+//! Nucleus mesh protocol types and utilities.
+#![no_std]
 
-// extern crate alloc;
+extern crate alloc;
 
-// mod packet;
-// mod noise;
-// mod routing;
+mod messages;
 
-// // Временно экспортируем основные функции
-// pub use packet::*;
+pub use messages::*;
