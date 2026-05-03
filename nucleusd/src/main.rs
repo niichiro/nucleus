@@ -42,6 +42,8 @@ const STATE_FILE: &str = "state.json";
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> bluer::Result<()> {
+    dotenvy::dotenv();
+
     let session = bluer::Session::new().await?;
     let adapter = session.default_adapter().await?;
     adapter.set_powered(true).await?;
