@@ -1,11 +1,5 @@
 mod models;
 
-use anyhow::Result;
-use axum::extract::Path;
-use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
-use axum::routing::post;
-use axum::{extract::State, routing::get, Json, Router};
 use bluer::{
     adv::Advertisement,
     gatt::{
@@ -18,16 +12,9 @@ use bluer::{
     },
 };
 use futures::{future, pin_mut, StreamExt};
-use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::{
-    collections::{BTreeMap, HashMap},
-    str::FromStr,
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::{str::FromStr, time::Duration};
 use tokio::{
-    fs,
     io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
     time::{interval, sleep},
 };
@@ -119,49 +106,30 @@ async fn main() -> bluer::Result<()> {
                 match evt {
                     Some(CharacteristicControlEvent::Write(req)) => {
                         println!("Accepting write event with MTU {} from {}", req.mtu(), req.device_address());
-                        read_buf = vec![0; req.mtu()];
-                        reader_opt = Some(req.accept()?);
+                        // read_buf = vec![0; req.mtu()];
+                        // reader_opt = Some(req.accept()?);
+
+                        // Внутри обработчика CharacteristicControlEvent::Write(req)
+                        let mut reader = req.accept()?;
+                        let mut buf = vec![0u8; req.mtu()];
+                        let n = reader.read(&mut buf).await?;
+                        if let Ok(command) = postcard::from_bytes::<nucleus_mesh::Command>(&buf[..n]) {
+                            tracing::info!("Received command: {:?}", command);
+                            // Здесь позже будем исполнять (дергать MQTT/Zigbee)
+                        }
                     },
                     Some(CharacteristicControlEvent::Notify(notifier)) => {
                         println!("Accepting notify request event with MTU {} from {}", notifier.mtu(), notifier.device_address());
-                        writer_opt = Some(notifier);
+                        //writer_opt = Some(notifier);
+                        let ack = nucleus_mesh::Ack {
+                            command_id: cmd.id,
+                            result_code: 0,
+                            new_state: None,
+                        };
+                        let ack_bytes = postcard::to_vec(&ack).unwrap();
+                        // ... отправить через notifier
                     },
                     None => break,
-                }
-            }
-            _ = interval.tick() => {
-                println!("Decrementing each element by one");
-                for v in &mut *value {
-                    *v = v.saturating_sub(1);
-                }
-                println!("Value is {:x?}", &value);
-                if let Some(writer) = writer_opt.as_mut() {
-                    println!("Notifying with value {:x?}", &value);
-                    if let Err(err) = writer.write(&value).await {
-                        println!("Notification stream error: {}", &err);
-                        writer_opt = None;
-                    }
-                }
-            }
-            read_res = async {
-                match &mut reader_opt {
-                    Some(reader) => reader.read(&mut read_buf).await,
-                    None => future::pending().await,
-                }
-            } => {
-                match read_res {
-                    Ok(0) => {
-                        println!("Write stream ended");
-                        reader_opt = None;
-                    }
-                    Ok(n) => {
-                        value = read_buf[0..n].to_vec();
-                        println!("Write request with {} bytes: {:x?}", n, &value);
-                    }
-                    Err(err) => {
-                        println!("Write stream error: {}", &err);
-                        reader_opt = None;
-                    }
                 }
             }
         }
