@@ -3,3 +3,6 @@ curl.exe -X POST http://localhost:3000/api/devices/lamp:living/set -H "Content-T
 ip route show | grep default | awk '{print $3}'
 
 curl -X POST http://172.24.80.1:3000/api/devices/lamp:living/set   -H "Content-Type: application/json"   -d '{"on": true}'
+
+Build:
+sudo apt update && sudo apt install libdbus-1-dev pkg-config && sudo apt install libfontconfig1-dev

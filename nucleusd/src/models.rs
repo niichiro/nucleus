@@ -55,16 +55,6 @@ pub struct DeviceCommand {
     on: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Command {
-    device_id: String,
-    field: String, // "on", "brightness"
-    value: serde_json::Value,
-    // позже добавим nonce/подпись
-}
-
-pub const NUCLEUS_UUID: [u8; 16] = uuid!("d6c6a000-f18e-4bfd-a51a-c609e45263d1").into_bytes();
-
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub enum Command {
     Lamp(LampCommand),
