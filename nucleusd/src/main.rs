@@ -81,9 +81,14 @@ async fn main() -> bluer::Result<()> {
     // Шаг 3: регистрируем приложение и запускаем рекламу
     let app_handle = adapter.serve_gatt_application(app).await?;
 
+    println!("Service handle is 0x{:x}", service_control.handle()?);
+    println!("Characteristic handle is 0x{:x}", char_control.handle()?);
+
     println!("Nucleus BLE node is up. Listening for commands...");
 
     // Шаг 4: основной цикл обработки событий
+    println!("Service ready. Press enter to quit.");
+
     let stdin = BufReader::new(tokio::io::stdin());
     let mut lines = stdin.lines();
 
@@ -92,41 +97,60 @@ async fn main() -> bluer::Result<()> {
     let mut reader_opt: Option<CharacteristicReader> = None;
     let mut writer_opt: Option<CharacteristicWriter> = None;
     let mut interval = interval(Duration::from_secs(1));
-    let mut reader_opt: Option<Box<dyn AsyncReadExt + Unpin>> = None;
-    let mut read_buf = vec![0u8; 512];
 
     pin_mut!(char_control);
     loop {
         tokio::select! {
+            _ = lines.next_line() => break,
             evt = char_control.next() => {
                 match evt {
                     Some(CharacteristicControlEvent::Write(req)) => {
-                        println!("Write from {}", req.device_address());
-                        read_buf.resize(req.mtu(), 0);
+                        println!("Accepting write event with MTU {} from {}", req.mtu(), req.device_address());
+                        read_buf = vec![0; req.mtu()];
                         reader_opt = Some(req.accept()?);
-                    }
+                    },
                     Some(CharacteristicControlEvent::Notify(notifier)) => {
-                        println!("Notify subscription from {}", notifier.device_address());
-                        // Можно сохранить notifier для отправки уведомлений клиенту
-                    }
+                        println!("Accepting notify request event with MTU {} from {}", notifier.mtu(), notifier.device_address());
+                        writer_opt = Some(notifier);
+                    },
                     None => break,
-                    _ => {}
                 }
             }
-            // Чтение данных от клиента
-            _ = async {
-                if let Some(ref mut reader) = reader_opt {
-                    match reader.read(&mut read_buf).await {
-                        Ok(n) if n > 0 => {
-                            println!("Received command: {:?}", &read_buf[..n]);
-                            // Здесь обрабатываем команду умного дома
-                        }
-                        _ => { reader_opt = None; }
+            _ = interval.tick() => {
+                println!("Decrementing each element by one");
+                for v in &mut *value {
+                    *v = v.saturating_sub(1);
+                }
+                println!("Value is {:x?}", &value);
+                if let Some(writer) = writer_opt.as_mut() {
+                    println!("Notifying with value {:x?}", &value);
+                    if let Err(err) = writer.write(&value).await {
+                        println!("Notification stream error: {}", &err);
+                        writer_opt = None;
                     }
                 }
-                // fallback
-                std::future::pending().await
-            } => {}
+            }
+            read_res = async {
+                match &mut reader_opt {
+                    Some(reader) => reader.read(&mut read_buf).await,
+                    None => future::pending().await,
+                }
+            } => {
+                match read_res {
+                    Ok(0) => {
+                        println!("Write stream ended");
+                        reader_opt = None;
+                    }
+                    Ok(n) => {
+                        value = read_buf[0..n].to_vec();
+                        println!("Write request with {} bytes: {:x?}", n, &value);
+                    }
+                    Err(err) => {
+                        println!("Write stream error: {}", &err);
+                        reader_opt = None;
+                    }
+                }
+            }
         }
     }
 
