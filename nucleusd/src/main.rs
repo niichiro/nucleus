@@ -6,30 +6,39 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::routing::post;
 use axum::{extract::State, routing::get, Json, Router};
-use bluer::adv::Advertisement;
-use bluer::gatt::local::{
-    characteristic_control, service_control, Application, Characteristic,
-    CharacteristicControlEvent, CharacteristicNotify, CharacteristicNotifyMethod,
-    CharacteristicWrite, CharacteristicWriteMethod, Service,
+use bluer::{
+    adv::Advertisement,
+    gatt::{
+        local::{
+            characteristic_control, service_control, Application, Characteristic,
+            CharacteristicControlEvent, CharacteristicNotify, CharacteristicNotifyMethod,
+            CharacteristicWrite, CharacteristicWriteMethod, Service,
+        },
+        CharacteristicReader, CharacteristicWriter,
+    },
 };
-use futures::pin_mut;
+use futures::{future, pin_mut, StreamExt};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::collections::{BTreeMap, HashMap};
-use std::str::FromStr;
-use std::sync::{Arc, Mutex};
-use tokio::fs;
-use tokio::io::AsyncReadExt;
+use std::{
+    collections::{BTreeMap, HashMap},
+    str::FromStr,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
+use tokio::{
+    fs,
+    io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
+    time::{interval, sleep},
+};
 use uuid::Uuid;
 
-pub const NUCLEUS_UUID: [u8; 16] = uuid!("d6c6a000-f18e-4bfd-a51a-c609e45263d1").into_bytes();
-pub const COMMAND_UUID: [u8; 16] = uuid!("a6c6a000-f18e-4bfd-a51a-c609e45263d1").into_bytes();
-pub const SERVICE_UUID: [u8; 16] = uuid!("c6c6a000-f18e-4bfd-a51a-c609e45263d1").into_bytes();
-pub const CHAR_UUID: [u8; 16] = uuid!("b6c6a000-f18e-4bfd-a51a-c609e45263d1").into_bytes();
+pub const NUCLEUS_UUID: &str = "a6c6a000-f18e-4bfd-a51a-c609e45263d1";
+pub const COMMAND_UUID: &str = "b6c6a000-f18e-4bfd-a51a-c609e45263d1";
+pub const SERVICE_UUID: &str = "c6c6a000-f18e-4bfd-a51a-c609e45263d1";
+pub const CHAR_UUID: &str = "d6c6a000-f18e-4bfd-a51a-c609e45263d1";
 
 const STATE_FILE: &str = "state.json";
-
-type Devices = HashMap<String, Device>;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> bluer::Result<()> {
@@ -38,7 +47,9 @@ async fn main() -> bluer::Result<()> {
     adapter.set_powered(true).await?;
 
     let advertisement = Advertisement {
-        service_uuids: vec![Uuid::from_bytes(NUCLEUS_UUID)].into_iter().collect(),
+        service_uuids: vec![Uuid::from_str(NUCLEUS_UUID).unwrap()]
+            .into_iter()
+            .collect(),
         discoverable: Some(true),
         local_name: Some("nucleus-node".to_string()),
         ..Default::default()
@@ -51,7 +62,7 @@ async fn main() -> bluer::Result<()> {
 
     // Шаг 2: собираем GATT-приложение
     let characteristic = Characteristic {
-        uuid: Uuid::from_bytes(CHAR_UUID),
+        uuid: Uuid::from_str(CHAR_UUID).unwrap(),
         write: Some(CharacteristicWrite {
             write: true,
             write_without_response: true,
@@ -67,7 +78,7 @@ async fn main() -> bluer::Result<()> {
         ..Default::default()
     };
     let service = Service {
-        uuid: Uuid::from_bytes(SERVICE_UUID),
+        uuid: Uuid::from_str(SERVICE_UUID).unwrap(),
         primary: true,
         characteristics: vec![characteristic],
         control_handle: service_handle,
