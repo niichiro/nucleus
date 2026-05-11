@@ -1,3 +1,6 @@
+extern crate alloc;
+
+mod core;
 mod models;
 
 use bluer::{
@@ -93,7 +96,7 @@ async fn main() -> bluer::Result<()> {
     let mut lines = stdin.lines();
 
     let mut value: Vec<u8> = vec![0x10, 0x01, 0x01, 0x10];
-    let mut read_buf = Vec::new();
+    let mut read_buf: Vec<u8> = Vec::new();
     let mut reader_opt: Option<CharacteristicReader> = None;
     let mut writer_opt: Option<CharacteristicWriter> = None;
     let mut interval = interval(Duration::from_secs(1));
@@ -105,13 +108,14 @@ async fn main() -> bluer::Result<()> {
             evt = char_control.next() => {
                 match evt {
                     Some(CharacteristicControlEvent::Write(req)) => {
-                        println!("Accepting write event with MTU {} from {}", req.mtu(), req.device_address());
+                        let mtu = req.mtu();
+                        println!("Accepting write event with MTU {} from {}", mtu, req.device_address());
                         // read_buf = vec![0; req.mtu()];
                         // reader_opt = Some(req.accept()?);
 
                         // Внутри обработчика CharacteristicControlEvent::Write(req)
                         let mut reader = req.accept()?;
-                        let mut buf = vec![0u8; req.mtu()];
+                        let mut buf = vec![0u8; mtu];
                         let n = reader.read(&mut buf).await?;
                         if let Ok(command) = postcard::from_bytes::<nucleus_mesh::Command>(&buf[..n]) {
                             tracing::info!("Received command: {:?}", command);
@@ -121,12 +125,12 @@ async fn main() -> bluer::Result<()> {
                     Some(CharacteristicControlEvent::Notify(notifier)) => {
                         println!("Accepting notify request event with MTU {} from {}", notifier.mtu(), notifier.device_address());
                         //writer_opt = Some(notifier);
-                        let ack = nucleus_mesh::Ack {
-                            command_id: cmd.id,
-                            result_code: 0,
-                            new_state: None,
-                        };
-                        let ack_bytes = postcard::to_vec(&ack).unwrap();
+                        // let ack = nucleus_mesh::Ack {
+                        //     command_id: cmd.id,
+                        //     result_code: 0,
+                        //     new_state: None,
+                        // };
+                        // let ack_bytes = postcard::to_vec(&ack).unwrap();
                         // ... отправить через notifier
                     },
                     None => break,

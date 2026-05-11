@@ -2,8 +2,9 @@
 resolver = "2"
 members = [
     "nucleusd",
-    "nucleus-mesh",
     "nucleus-app",
+    "nucleus-mesh",
+    "nucleus-node",
 ]
 # Исключим simulation/ из рабочего пространства, если он появится,
 # или добавим позже.

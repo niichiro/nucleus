@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use uuid::{uuid, Uuid};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Device {

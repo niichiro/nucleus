@@ -1,5 +1,5 @@
 [package]
-name = "nucleus-mesh"
+name = "nucleus-node"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,11 +8,9 @@ license.workspace = true
 # Для сериализации пакетов
 serde = { workspace = true, default-features = false, features = ["alloc", "derive"] }
 postcard = { version = "1", default-features = false, features = ["alloc"] }
-lru = "0.18"
 
 # Для Noise-рукопожатия
 snow = { version = "0.10", default-features = false }
-async-trait = "0.1"
 
 # Для тестов на ПК (условно)
 [target.'cfg(not(target_arch = "riscv32"))'.dev-dependencies]

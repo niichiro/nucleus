@@ -34,3 +34,4 @@ secrets/
 # Специфичные для нашего проекта
 nucleusd/*.db
 nucleusd/*.db-journal
+.directory

@@ -59,6 +59,24 @@ pub struct Announce {
     pub protocol_version: u8,
 }
 
+impl Announce {
+    pub fn new(
+        node_id: NodeId,
+        node_type: NodeType,
+        flags: u8,
+        devices: Vec<DeviceId>,
+        protocol_version: u8,
+    ) -> Result<Announce, CreateAnnounceError> {
+        Ok(Announce {
+            node_id,
+            node_type,
+            flags,
+            devices,
+            protocol_version,
+        })
+    }
+}
+
 /// Команда управления устройством.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Command {
@@ -72,6 +90,24 @@ pub struct Command {
     pub timestamp: u64,
     /// Оставшееся количество прыжков (TTL).
     pub ttl: u8,
+}
+
+impl Command {
+    pub fn new(
+        id: u32,
+        device_id: DeviceId,
+        action: Action,
+        timestamp: u64,
+        ttl: u8,
+    ) -> Result<Command, CreateCommandError> {
+        Ok(Command {
+            id,
+            device_id,
+            action,
+            timestamp,
+            ttl,
+        })
+    }
 }
 
 /// Подтверждение выполнения команды.
@@ -113,3 +149,13 @@ pub struct DeviceState {
     /// Числовое значение (температура, влажность).
     pub value: Option<f32>,
 }
+
+pub enum CreateAnnounceError {
+    InvalidTtl,
+}
+
+pub enum CreateCommandError {
+    InvalidTtl,
+}
+
+pub enum TransportError {}
