@@ -1,20 +1,20 @@
 extern crate alloc;
 
-use alloc::vec::Vec;
+use alloc::{string::String, vec::Vec};
+use hashbrown::HashMap;
 use nucleus_mesh::{Ack, Command, FloodRouter, Message, Query, Response, Transport};
-use std::collections::HashMap;
-use std::sync::Arc;
 use thiserror::Error;
 
-use crate::models::DeviceState;
-
-pub struct NucleusCore {
-    devices: HashMap<String, DeviceState>,
+pub struct NucleusCore<T> {
+    devices: HashMap<String, String>,
     router: FloodRouter,
-    transport: Arc<dyn Transport>,
+    transport: T,
 }
 
-impl NucleusCore {
+impl<T> NucleusCore<T>
+where
+    T: Transport,
+{
     pub async fn handle_message(&mut self, msg: Message) -> Result<(), CoreError> {
         match msg {
             Message::Command(cmd) => {

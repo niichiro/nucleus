@@ -1019,6 +1019,7 @@ dependencies = [
  "allocator-api2",
  "equivalent",
  "foldhash 0.2.0",
+ "rustc-std-workspace-alloc",
 ]
 
 [[package]]
@@ -1363,6 +1364,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "nucleus-core"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "hashbrown 0.17.0",
+ "nucleus-mesh",
+ "postcard",
+ "serde",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "nucleus-mesh"
 version = "0.1.0"
 dependencies = [
@@ -1398,6 +1411,7 @@ dependencies = [
  "futures",
  "libc",
  "mdns-sd",
+ "nucleus-core",
  "nucleus-mesh",
  "pin-project",
  "postcard",
@@ -1693,6 +1707,12 @@ dependencies = [
  "tokio-stream",
  "tokio-util",
 ]
+
+[[package]]
+name = "rustc-std-workspace-alloc"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9d441c3b2ebf55cebf796bfdc265d67fa09db17b7bb6bd4be75c509e1e8fec3"
 
 [[package]]
 name = "rustc_version"

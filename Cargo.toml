@@ -5,6 +5,7 @@ members = [
     "nucleus-app",
     "nucleus-mesh",
     "nucleus-node",
+    "nucleus-core",
 ]
 # Исключим simulation/ из рабочего пространства, если он появится,
 # или добавим позже.

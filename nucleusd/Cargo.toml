@@ -7,6 +7,7 @@ license.workspace = true
 [dependencies]
 # Libs
 nucleus-mesh = { path = "../nucleus-mesh" }
+nucleus-core = { path = "../nucleus-core" }
 
 # Packages
 dotenvy = "0.15"

@@ -1,6 +1,5 @@
 extern crate alloc;
 
-mod core;
 mod models;
 
 use bluer::{
@@ -14,11 +13,10 @@ use bluer::{
         CharacteristicReader, CharacteristicWriter,
     },
 };
-use futures::{future, pin_mut, StreamExt};
-use serde_json::json;
+use futures::{pin_mut, StreamExt};
 use std::{str::FromStr, time::Duration};
 use tokio::{
-    io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
+    io::{AsyncBufReadExt, AsyncReadExt, BufReader},
     time::{interval, sleep},
 };
 use uuid::Uuid;
@@ -43,7 +41,7 @@ async fn main() -> bluer::Result<()> {
             .into_iter()
             .collect(),
         discoverable: Some(true),
-        local_name: Some("nucleus-node".to_string()),
+        local_name: Some("nu".to_string()),
         ..Default::default()
     };
     let adv_handle = adapter.advertise(advertisement).await?;
