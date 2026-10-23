@@ -1,0 +1,28 @@
+[package]
+name = "nucleus-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+# Для сериализации пакетов.
+# Объявлены напрямую (не через workspace): no_std требует default-features = false,
+# а workspace-наследование игнорирует этот флаг у членов.
+serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
+thiserror = { version = "2", default-features = false }
+postcard = { workspace = true }
+lru = "0.18"
+async-trait = { workspace = true }
+hashbrown = { version = "0.17", default-features = false, features = ["alloc"] }
+
+# Криптография (подписи Ed25519 / Noise) — M3: тогда и выберем крейты
+# (snow без крипто-бэкенда бесполезен, ring не собирается на riscv).
+
+[lints]
+workspace = true
+
+# Для тестов на ПК (не попадают в прошивку)
+[target.'cfg(not(target_arch = "riscv32"))'.dev-dependencies]
+tracing = { workspace = true }
+async-trait = { workspace = true }
+tokio = { version = "1", features = ["rt", "macros", "sync", "time"] }

@@ -1,0 +1,29 @@
+[package]
+name = "nucleusd"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+# Libs
+nucleus-core = { path = "../nucleus-core" }
+
+# Packages
+tokio = { version = "1", features = ["full"] }
+bluer = { version = "0.17", features = ["full"] }  # BLE (только Linux/BlueZ)
+axum = "0.8"                         # HTTP API (M1)
+clap = { version = "4", features = ["derive"] }    # CLI (--data-dir и т.д., M1)
+toml = "0.8"                         # конфиг-файл (M1)
+serde = { workspace = true }
+serde_json.workspace = true
+uuid = "1"                                          # парсинг UUID GATT-сервиса
+tracing = { workspace = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }  # вывод логов, RUST_LOG
+tracing-appender = "0.2"           # rolling logs (M1)
+mdns-sd = "0.19"                     # mDNS-обнаружение (M1)
+rumqttc = "0.25"                    # MQTT (M1: эмуляция устройств, zigbee2mqtt)
+thiserror = { workspace = true }
+futures = "0.3"
+
+[lints]
+workspace = true

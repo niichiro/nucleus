@@ -1,0 +1,19 @@
+[Unit]
+Description=Nucleus daemon (smart-home mesh node)
+Documentation=https://github.com/niichiro/nucleus
+After=network.target bluetooth.target
+Wants=bluetooth.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/nucleusd --data-dir /var/lib/nucleus
+Restart=on-failure
+RestartSec=3
+# BLE требует права на BlueZ (bluer ходит через D-Bus)
+SupplementaryGroups=bluetooth
+StateDirectory=nucleus
+AmbientCapabilities=
+User=root
+
+[Install]
+WantedBy=multi-user.target

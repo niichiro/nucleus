@@ -1,4 +1,4 @@
-// nucleus-mesh/src/messages.rs
+// nucleus-core/src/messages.rs
 
 use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 /// Уникальный идентификатор узла (публичный ключ Ed25519 или MAC-адрес).
 pub type NodeId = [u8; 32];
 
-/// Идентификатор устройства (например, "light.living_room").
+/// Идентификатор устройства (например, "lamp:living").
 pub type DeviceId = String;
 
 /// Тип узла Nucleus.
@@ -30,7 +30,7 @@ pub enum Action {
 }
 
 /// Сообщение протокола Nucleus.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Message {
     /// Периодическое объявление узла (heartbeat / announce).
     Announce(Announce),
@@ -45,7 +45,7 @@ pub enum Message {
 }
 
 /// Объявление узла.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Announce {
     /// Уникальный ID узла (публичный ключ или MAC).
     pub node_id: NodeId,
@@ -55,63 +55,27 @@ pub struct Announce {
     pub flags: u8,
     /// Список устройств, которыми узел управляет напрямую.
     pub devices: Vec<DeviceId>,
-    /// Версия протокола (для совместимости).
+    /// Версия протокола узла (должна совпадать с [`crate::PROTOCOL_VERSION`]).
     pub protocol_version: u8,
 }
 
-impl Announce {
-    pub fn new(
-        node_id: NodeId,
-        node_type: NodeType,
-        flags: u8,
-        devices: Vec<DeviceId>,
-        protocol_version: u8,
-    ) -> Result<Announce, CreateAnnounceError> {
-        Ok(Announce {
-            node_id,
-            node_type,
-            flags,
-            devices,
-            protocol_version,
-        })
-    }
-}
-
 /// Команда управления устройством.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Command {
-    /// Уникальный идентификатор команды (защита от дублирования).
+    /// Уникальный идентификатор команды (защита от дублирования при флуде).
     pub id: u32,
     /// Идентификатор устройства-получателя.
     pub device_id: DeviceId,
     /// Действие.
     pub action: Action,
-    /// Время отправки (миллисекунды с момента старта узла).
+    /// Время отправки (миллисекунды с момента старта узла-отправителя).
     pub timestamp: u64,
     /// Оставшееся количество прыжков (TTL).
     pub ttl: u8,
 }
 
-impl Command {
-    pub fn new(
-        id: u32,
-        device_id: DeviceId,
-        action: Action,
-        timestamp: u64,
-        ttl: u8,
-    ) -> Result<Command, CreateCommandError> {
-        Ok(Command {
-            id,
-            device_id,
-            action,
-            timestamp,
-            ttl,
-        })
-    }
-}
-
 /// Подтверждение выполнения команды.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Ack {
     /// ID команды, на которую отвечаем.
     pub command_id: u32,
@@ -122,7 +86,7 @@ pub struct Ack {
 }
 
 /// Запрос состояния одного или всех устройств.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Query {
     /// Если None — запросить все устройства.
     pub device_ids: Option<Vec<DeviceId>>,
@@ -131,7 +95,7 @@ pub struct Query {
 }
 
 /// Ответ на запрос состояния.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Response {
     /// ID запроса, на который отвечаем.
     pub request_id: u32,
@@ -140,7 +104,7 @@ pub struct Response {
 }
 
 /// Состояние устройства (значения полей).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DeviceState {
     /// Включено / выключено.
     pub on: Option<bool>,
@@ -149,13 +113,3 @@ pub struct DeviceState {
     /// Числовое значение (температура, влажность).
     pub value: Option<f32>,
 }
-
-pub enum CreateAnnounceError {
-    InvalidTtl,
-}
-
-pub enum CreateCommandError {
-    InvalidTtl,
-}
-
-pub enum TransportError {}
