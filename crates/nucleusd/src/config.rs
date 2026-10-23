@@ -64,6 +64,7 @@ impl Config {
             http_port: cli.http_port.or(file.http_port).unwrap_or(3000),
             mqtt_broker: cli
                 .mqtt_broker
+                .clone()
                 .or(file.mqtt_broker)
                 .unwrap_or_else(|| "127.0.0.1:1883".into()),
             node_name: file

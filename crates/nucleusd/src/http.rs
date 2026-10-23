@@ -77,7 +77,8 @@ async fn set_device(
 }
 
 fn device_dto(entry: crate::state::DeviceEntry) -> DeviceDto {
-    device_dto_with_state(entry, entry.device_state())
+    let state = entry.device_state();
+    device_dto_with_state(entry, state)
 }
 
 fn device_dto_with_state(

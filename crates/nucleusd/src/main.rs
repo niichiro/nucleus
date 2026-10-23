@@ -11,6 +11,9 @@ use nucleusd::{
     http, mdns, mqtt,
     state::StateStore,
 };
+use tokio::io::AsyncBufReadExt as _;
+use tracing_subscriber::layer::SubscriberExt as _;
+use tracing_subscriber::util::SubscriberInitExt as _;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

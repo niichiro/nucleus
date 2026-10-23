@@ -99,7 +99,7 @@ impl StateStore {
             // Числовые значения лампам не применимы — состояние не меняем
             Action::SetValue(_) => {}
         }
-        let new_state = Self::to_device_state(entry);
+        let new_state = entry.device_state();
         self.save();
         Some(new_state)
     }

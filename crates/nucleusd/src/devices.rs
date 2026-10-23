@@ -104,7 +104,10 @@ impl DeviceExecutor for DeviceManager {
             None => self
                 .entries()
                 .into_iter()
-                .map(|e| (e.id, e.device_state()))
+                .map(|e| {
+                    let state = e.device_state();
+                    (e.id, state)
+                })
                 .collect(),
             Some(ids) => ids
                 .iter()

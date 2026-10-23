@@ -11,14 +11,8 @@ use mdns_sd::{ServiceDaemon, ServiceInfo};
 pub fn register(instance: &str, port: u16) -> mdns_sd::Result<ServiceDaemon> {
     let daemon = ServiceDaemon::new()?;
     let ip = local_ip();
-    let info = ServiceInfo::new(
-        "_nucleus._tcp.local.",
-        instance,
-        format!("{instance}.local."),
-        ip,
-        port,
-        None,
-    )?;
+    let host_name = format!("{instance}.local.");
+    let info = ServiceInfo::new("_nucleus._tcp.local.", instance, &host_name, ip, port, None)?;
     daemon.register(info)?;
     tracing::info!("mDNS: _nucleus._tcp.local. → {instance} [{ip}:{port}]");
     Ok(daemon)
