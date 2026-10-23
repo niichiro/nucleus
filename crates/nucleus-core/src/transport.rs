@@ -15,6 +15,8 @@ pub enum TransportError {
 }
 
 /// Двунаправленный транспорт кадр-уровня: отправка и приём сырых байтов.
+// clippy (1.99+): async_trait генерирует #[must_use] на возвращаемых boxed future
+#[allow(clippy::double_must_use)]
 #[async_trait]
 pub trait Transport {
     async fn send(&self, data: &[u8]) -> Result<(), TransportError>;

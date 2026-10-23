@@ -25,6 +25,8 @@ pub enum ExecuteError {
 /// Реализуется демоном (`nucleusd`: виртуальные устройства, Zigbee) и прошивкой
 /// ESP32 (GPIO). `DeviceNotFound` означает, что устройство не этого узла —
 /// движок передаст команду дальше по mesh.
+// clippy (1.99+): async_trait генерирует #[must_use] на возвращаемых boxed future
+#[allow(clippy::double_must_use)]
 #[async_trait]
 pub trait DeviceExecutor {
     /// Исполняет команду над локальным устройством, возвращает новое состояние.
