@@ -204,7 +204,10 @@ impl DeviceManager {
             let Some(name) = device.get("friendly_name").and_then(Value::as_str) else {
                 continue;
             };
-            if name.starts_with("bridge") {
+            // Служебные записи: сам брокер (bridge*) и координатор
+            if name.starts_with("bridge")
+                || device.get("type").and_then(Value::as_str) == Some("Coordinator")
+            {
                 continue;
             }
             let supports_brightness = exposes_have(device, "brightness");

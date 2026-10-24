@@ -49,7 +49,7 @@ nucleusd lib+bin (ble/config/devices/http/mqtt/mdns/state); DeviceExecutor в д
 rolling-логи + mDNS; nucleus-ctl (btleplug). Приёмка на Orange Pi отменена
 (плата исключена); виртуальные устройства принимаются в составе M2 на ПК.
 
-### M2 — Фаза 1 «Железо оживает» (текущий): Zigbee на ПК
+### M2 — Фаза 1 «Железо оживает» ✅ (принят 2026-10-24): Zigbee на ПК
 1. nucleusd: bluer за cargo-feature `ble-peripheral` (по умолчанию off) — сервер
    собирается и работает на Windows.
 2. `docs/DEPLOY-WINDOWS.md`: mosquitto + zigbee2mqtt (Node.js) нативно, конфиг стика.
@@ -58,8 +58,11 @@ rolling-логи + mDNS; nucleus-ctl (btleplug). Приёмка на Orange Pi �
    маппинг exposed → Action; friendly_name = device_id.
 4. nucleus-ctl: режим `--http <url>` — приёмка без BLE.
 
-Приёмка: `nucleus-ctl --http on <zigbee-устройство>` → физическое устройство
-реагирует; состояние в снапшоте; MQTT `nucleus/*` отражает изменения.
+Приёмка (2026-10-24, пройдена): Tuya TS0505B_1 (RGB+CCT) спарена как `lamp:rgb`;
+`ctl --http off/on/level` — лампа реагирует, реальное состояние возвращается отчётом
+в `nucleus/lamp:rgb/state`; переименование через `bridge/request/device/rename`.
+Живое тестирование поймало и исправило: лимит MQTT-пакета rumqttc (27 КБ bridge/devices),
+фильтр служебной записи Coordinator.
 
 ### M3 — Фаза 2 «Настоящая mesh» (после M2): ESP32-C3
 Платформа: разработка и отладка на C3 Super Mini; C6 (если будут докуплены) встаёт

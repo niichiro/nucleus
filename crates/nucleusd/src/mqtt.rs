@@ -13,6 +13,8 @@ pub fn connect(broker: &str) -> (AsyncClient, EventLoop) {
     let (host, port) = parse_broker(broker);
     let mut options = MqttOptions::new("nucleusd", host, port);
     options.set_keep_alive(Duration::from_secs(30));
+    // bridge/devices от zigbee2mqtt — десятки КБ retained-полезной нагрузки
+    options.set_max_packet_size(1024 * 1024, 1024 * 1024);
     AsyncClient::new(options, 64)
 }
 
