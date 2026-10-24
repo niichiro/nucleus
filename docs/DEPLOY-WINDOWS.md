@@ -12,8 +12,7 @@ cargo build --release -p nucleusd          # без BLE — работает н�
 cargo run --release -p nucleusd -- --data-dir "G:\Soft\nucleus-data" --http-port 3000
 ```
 
-Флаги: `--data-dir` (state.json + логи), `--config nucleusd.toml`, `--mqtt-broker 127.0.0.1:1883`, `--no-mdns`.
-При первом старте положите `crates/nucleusd/state.json` в каталог данных (виртуальные лампы для теста).
+Флаги: `--data-dir` (логи), `--config nucleusd.toml`, `--mqtt-broker 127.0.0.1:1883`, `--no-mdns`.
 
 Проверка: `curl http://localhost:3000/api/devices` — список устройств.
 
@@ -65,16 +64,12 @@ permit_join: false      # включать true только на время д�
 ## 5. Приёмка M2 (чеклист)
 
 ```bash
-# виртуальная лампа (state.json)
-cargo run --release -p nucleus-ctl -- --http http://localhost:3000 on lamp:living
-
 # реальное Zigbee-устройство (после спаривания в веб-морде zigbee2mqtt)
 cargo run --release -p nucleus-ctl -- --http http://localhost:3000 on <zigbee-id>
 cargo run --release -p nucleus-ctl -- --http http://localhost:3000 query
 ```
 
 - [ ] Zigbee-устройство физически реагирует, состояние видно в `query` и веб-морде
-- [ ] Состояние виртуальных устройств переживает рестарт nucleusd (state.json)
 - [ ] `mosquitto_sub -t 'nucleus/#' -v` показывает изменения из всех каналов
 - [ ] nucleusd работает без брокера/zigbee2mqtt (warnings в логе, HTTP живой)
 

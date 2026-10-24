@@ -7,8 +7,11 @@ license.workspace = true
 [features]
 default = []
 # BLE-периферия на Linux (bluer/BlueZ) — «роль Orange Pi» для совместимости.
-# На Windows сервер работает без неё: HTTP/MQTT/Zigbee + BLE-централ (M3).
+# На Windows сервер работает без неё: HTTP/MQTT/Zigbee + BLE-централ.
 ble-peripheral = ["dep:bluer", "dep:futures", "dep:uuid"]
+# BLE-централ (btleplug, Windows/Linux/macOS): сервер подключается к узлам mesh
+# как телефон, к тому же GATT-профилю.
+ble-central = ["dep:btleplug", "dep:futures", "dep:uuid", "dep:anyhow"]
 
 [dependencies]
 # Libs
@@ -17,7 +20,9 @@ nucleus-core = { path = "../nucleus-core" }
 # Packages
 tokio = { version = "1", features = ["full"] }
 bluer = { version = "0.17", features = ["full"], optional = true }  # BLE-периферия, только Linux/BlueZ
-futures = { version = "0.3", optional = true }  # поток событий bluer
+btleplug = { version = "0.11", optional = true }  # BLE-централ
+anyhow = { version = "1", optional = true }  # диагностика цепочки ошибок BLE-централа
+futures = { version = "0.3", optional = true }  # потоки событий bluer/btleplug
 async-trait = { workspace = true }
 axum = "0.8"                         # HTTP API
 clap = { version = "4", features = ["derive"] }    # CLI (--data-dir и т.д.)

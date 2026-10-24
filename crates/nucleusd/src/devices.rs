@@ -11,8 +11,6 @@ use serde_json::{json, Value};
 use thiserror::Error;
 use tokio::sync::broadcast;
 
-use crate::state::StateStore;
-
 /// JSON-тело команды для HTTP и MQTT: {"on": true} / {"level": 128} / {"value": 22.5}.
 #[derive(Debug, Deserialize)]
 pub struct SetBody {
@@ -47,7 +45,7 @@ pub struct AnyDevice {
     pub id: String,
     pub name: String,
     pub kind: String,
-    pub source: &'static str, // "virtual" | "zigbee"
+    pub source: &'static str, // "zigbee"
     pub state: DeviceState,
 }
 
@@ -68,22 +66,26 @@ pub enum SetError {
     Mqtt(String),
 }
 
-/// Менеджер устройств узла: виртуальные (state.json) + Zigbee (zigbee2mqtt).
+/// Менеджер устройств сервера: устройства Zigbee из zigbee2mqtt (по MQTT).
 ///
 /// Единая точка исполнения для всех каналов (BLE, HTTP, MQTT).
 #[derive(Clone)]
 pub struct DeviceManager {
-    store: Arc<Mutex<StateStore>>,
     zigbee: Arc<Mutex<HashMap<String, ZigbeeDevice>>>,
     mqtt: Option<AsyncClient>,
     events: broadcast::Sender<DeviceEvent>,
 }
 
+impl Default for DeviceManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DeviceManager {
-    pub fn new(store: StateStore) -> Self {
+    pub fn new() -> Self {
         let (events, _) = broadcast::channel(64);
         Self {
-            store: Arc::new(Mutex::new(store)),
             zigbee: Arc::new(Mutex::new(HashMap::new())),
             mqtt: None,
             events,
@@ -106,57 +108,30 @@ impl DeviceManager {
         });
     }
 
-    fn lock_store(&self) -> std::sync::MutexGuard<'_, StateStore> {
-        self.store.lock().expect("state store poisoned")
-    }
-
     fn lock_zigbee(&self) -> std::sync::MutexGuard<'_, HashMap<String, ZigbeeDevice>> {
         self.zigbee.lock().expect("zigbee map poisoned")
     }
 
-    /// Все устройства узла: виртуальные + zigbee.
+    /// Все устройства сервера.
     pub fn list(&self) -> Vec<AnyDevice> {
-        let mut devices: Vec<AnyDevice> = self
-            .lock_store()
-            .list()
-            .into_iter()
-            .map(|e| {
-                let state = e.device_state();
-                AnyDevice {
-                    id: e.id,
-                    name: e.name,
-                    kind: e.kind,
-                    source: "virtual",
-                    state,
-                }
+        self.lock_zigbee()
+            .values()
+            .map(|z| AnyDevice {
+                id: z.friendly_name.clone(),
+                name: z.friendly_name.clone(),
+                kind: z.kind.clone(),
+                source: "zigbee",
+                state: z.state.clone(),
             })
-            .collect();
-        devices.extend(self.lock_zigbee().values().map(|z| AnyDevice {
-            id: z.friendly_name.clone(),
-            name: z.friendly_name.clone(),
-            kind: z.kind.clone(),
-            source: "zigbee",
-            state: z.state.clone(),
-        }));
-        devices
+            .collect()
     }
 
     pub fn get(&self, id: &str) -> Option<DeviceState> {
-        self.lock_store()
-            .get(id)
-            .or_else(|| self.lock_zigbee().get(id).map(|z| z.state.clone()))
+        self.lock_zigbee().get(id).map(|z| z.state.clone())
     }
 
-    /// Применяет действие: виртуальное устройство (state.json, снапшот)
-    /// или zigbee-устройство (команда в zigbee2mqtt/<id>/set).
+    /// Применяет действие к zigbee-устройству (команда в zigbee2mqtt/<id>/set).
     pub async fn set(&self, id: &str, action: &Action) -> Result<DeviceState, SetError> {
-        // Виртуальное устройство
-        if let Some(state) = self.lock_store().apply(id, action) {
-            self.emit(id, &state);
-            return Ok(state);
-        }
-
-        // Zigbee-устройство
         let device = self
             .lock_zigbee()
             .get(id)

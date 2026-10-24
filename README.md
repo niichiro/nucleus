@@ -82,7 +82,7 @@ Nucleus базируется на трёх типах узлов и трёх б�
 | **mosquitto** | MQTT-брокер (сервис Windows) | `localhost:1883`, анонимно локально | сервис; `net stop/start mosquitto` (админ) |
 | **zigbee2mqtt** | Zigbee-шлюз: USB-стик ↔ MQTT | веб-морда `:8080`; стик `COM3` (`adapter: ember`) | `cd G:\Soft\zigbee2mqtt && npm start` |
 
-Флаги nucleusd: `--data-dir` (state.json + логи), `--config <toml>`, `--http-port`, `--mqtt-broker`, `--no-mdns`.
+Флаги nucleusd: `--data-dir` (логи), `--config <toml>`, `--http-port`, `--mqtt-broker`, `--no-mdns`.
 
 ### Клиент (nucleus-ctl)
 
@@ -140,6 +140,5 @@ tail -f /g/Soft/nucleus-data/logs/nucleusd.log.*                         # ло�
 
 ### Важные файлы
 
-- `<data-dir>\state.json` — виртуальные устройства и сцены nucleusd (переживает рестарт)
 - `G:\Soft\zigbee2mqtt\data\configuration.yaml` — конфиг шлюза (порт стика, adapter) и база спаренных устройств
 - `G:\Soft\zigbee2mqtt\data\coordinator_backup.json` — бэкап Zigbee-сети с ключами; не терять

@@ -45,9 +45,10 @@ nucleus/
 
 ### M1 — Фаза 0 «Виртуальный дом» ✅ код (2026-10-23)
 nucleusd lib+bin (ble/config/devices/http/mqtt/mdns/state); DeviceExecutor в движке;
-виртуальные устройства (state.json, атомарный снапшот); HTTP API + MQTT-мост;
+устройства (тогда виртуальные, state.json — удалены 2026-10-24); HTTP API + MQTT-мост;
 rolling-логи + mDNS; nucleus-ctl (btleplug). Приёмка на Orange Pi отменена
-(плата исключена); виртуальные устройства принимаются в составе M2 на ПК.
+(плата исключена). Виртуальные устройства удалены из кода 2026-10-24:
+сервер управляет только реальными Zigbee-устройствами через zigbee2mqtt.
 
 ### M2 — Фаза 1 «Железо оживает» ✅ (принят 2026-10-24): Zigbee на ПК
 1. nucleusd: bluer за cargo-feature `ble-peripheral` (по умолчанию off) — сервер
@@ -64,13 +65,16 @@ rolling-логи + mDNS; nucleus-ctl (btleplug). Приёмка на Orange Pi �
 Живое тестирование поймало и исправило: лимит MQTT-пакета rumqttc (27 КБ bridge/devices),
 фильтр служебной записи Coordinator.
 
-### M3 — Фаза 2 «Настоящая mesh» (после M2): ESP32-C3
+### M3 — Фаза 2 «Настоящая mesh» (в работе с 2026-10-24): ESP32-C3
 Платформа: разработка и отладка на C3 Super Mini; C6 (если будут докуплены) встаёт
 в тот же код — тот же SDK, та же периферия, плюс радио 802.15.4 (Zigbee-роутер).
-1. `node/` — отдельный esp-idf workspace: BLE-периферия (NimBLE, единый GATT-профиль)
-   + ESP-NOW flooding поверх движка nucleus-core.
-2. nucleusd: транспорт `BleCentralTransport` (btleplug) — ПК подключается к узлу
-   как централ (переиспользовать логику nucleus-ctl).
+1. 🚧 `node/` — отдельный esp-idf workspace (каркас готов: esp-idf-svc + esp32-nimble +
+   ESP-NOW FFI + движок nucleus-core, места APIs помечены TODO(build)); сборка требует
+   установки esp-тулчейна (rustup target riscv32imc-esp-espidf, espflash, ldproxy;
+   первая сборка качает ESP-IDF ~1.5 ГБ — с явного согласия пользователя).
+2. ✅ nucleusd: транспорт `BleCentralTransport` (btleplug, feature `ble-central`) —
+   ПК подключается к узлу как централ, с авто-переподключением; проверен clippy
+   на Windows, живая проверка — с первой платой.
 3. Приёмка: телефон/ctl ─BLE─► C3#1 ─ESP-NOW─► C3#2 ─BLE─► ПК ─► Zigbee-лампа,
    без единого дата-кабеля.
 4. Мониторинг на ПК поверх HTTP API (полный UI — Фаза 3).

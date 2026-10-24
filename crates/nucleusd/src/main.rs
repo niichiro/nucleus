@@ -8,7 +8,6 @@ use nucleusd::{
     config::{Cli, Config},
     devices::DeviceManager,
     http, mdns, mqtt,
-    state::StateStore,
 };
 use tokio::io::AsyncBufReadExt as _;
 use tracing_subscriber::layer::SubscriberExt as _;
@@ -19,6 +18,9 @@ use nucleus_core::{CoreError, FloodRouter, NucleusCore, TransportError};
 
 #[cfg(feature = "ble-peripheral")]
 use nucleusd::ble;
+
+#[cfg(feature = "ble-central")]
+use nucleusd::ble_central;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -47,9 +49,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     tracing::info!("nucleusd starting: {config:?}");
 
-    // Виртуальные устройства из state.json + Zigbee-устройства из zigbee2mqtt
-    let store = StateStore::load_or_default(config.data_dir.join("state.json"));
-    let mut manager = DeviceManager::new(store);
+    // Устройства Zigbee приходят из zigbee2mqtt по MQTT
+    let mut manager = DeviceManager::new();
 
     // MQTT: клиент нужен менеджеру (команды zigbee), цикл — отдельно
     let (mqtt_client, eventloop) = mqtt::connect(&config.mqtt_broker);
@@ -84,6 +85,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+    // BLE-централ: сервер подключается к узлам mesh как телефон (M3)
+    #[cfg(feature = "ble-central")]
+    {
+        let executor = manager.clone();
+        tokio::spawn(async move {
+            ble_central::run(executor).await;
+        });
+    }
+
     // BLE-периферия + движок протокола (только Linux; на Windows сервер работает по HTTP/MQTT)
     #[cfg(feature = "ble-peripheral")]
     let (engine_task, ble_task) = {
@@ -109,7 +119,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         (engine_task, ble_task)
     };
 
-    let ble_note = if cfg!(feature = "ble-peripheral") {
+    let ble_note = if cfg!(feature = "ble-central") {
+        "BLE central on"
+    } else if cfg!(feature = "ble-peripheral") {
         "BLE peripheral on"
     } else {
         "no BLE (server mode)"

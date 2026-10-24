@@ -1,17 +1,24 @@
 [package]
 name = "nucleus-node"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
+version = "0.1.0"
+edition = "2021"
+description = "Прошивка узла Nucleus для ESP32-C3: BLE-периферия + ESP-NOW mesh"
+
+# Отдельный от crates/* workspace: esp-idf собирается собственным тулчейном
+# (riscv32imc-esp-espidf + ldproxy), корневой workspace его исключает.
+
+[[bin]]
+name = "nucleus-node"
+path = "src/main.rs"
 
 [dependencies]
-# Для сериализации пакетов
-serde = { workspace = true, default-features = false, features = ["alloc", "derive"] }
-postcard = { version = "1", default-features = false, features = ["alloc"] }
+nucleus-core = { path = "../crates/nucleus-core" }
+esp-idf-svc = { version = "0.51", features = ["binstart"] }
+esp32-nimble = { version = "0.12", features = ["esp-idf-svc"] }
+log = "0.4"
 
-# Для Noise-рукопожатия
-snow = { version = "0.10", default-features = false }
+[build-dependencies]
+embuild = "0.33"
 
-# Для тестов на ПК (условно)
-[target.'cfg(not(target_arch = "riscv32"))'.dev-dependencies]
-tracing = { workspace = true }
+[profile.release]
+opt-level = "s"
