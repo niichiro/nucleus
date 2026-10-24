@@ -69,14 +69,79 @@ Nucleus базируется на трёх типах узлов и трёх б�
 - [ ] Автоматическое переключение BLE / ESP‑NOW при перемещении.
 - [ ] Окончательная отделка интерфейса, OTA-обновления, документация.
 
-## 🚀 Быстрый старт
+## 🚀 Эксплуатация (окружение сервера)
 
-Деплой сервера: Windows — `docs/DEPLOY-WINDOWS.md`, Linux — `docs/DEPLOY.md`. План этапов — `docs/PLAN.md`.
+Установка по шагам — `docs/DEPLOY-WINDOWS.md` (Windows) и `docs/DEPLOY.md` (Linux).
+Здесь — карта работающей системы: что крутится, где смотреть, чем управлять.
+
+### Сервисы
+
+| Сервис | Роль | Адрес / порт | Запуск |
+|---|---|---|---|
+| **nucleusd** | Сервер Nucleus: устройства, HTTP API, состояние, логи, mDNS | HTTP `:3000`; mDNS `_nucleus._tcp.local.` | `cargo run --release -p nucleusd -- --data-dir C:
+ucleus` |
+| **mosquitto** | MQTT-брокер (сервис Windows) | `localhost:1883`, анонимно локально | сервис; `net stop/start mosquitto` (админ) |
+| **zigbee2mqtt** | Zigbee-шлюз: USB-стик ↔ MQTT | веб-морда `:8080`; стик `COM3` (`adapter: ember`) | `cd C:\zigbee2mqtt && npm start` |
+
+Флаги nucleusd: `--data-dir` (state.json + логи), `--config <toml>`, `--http-port`, `--mqtt-broker`, `--no-mdns`.
+
+### Клиент (nucleus-ctl)
 
 ```bash
-git clone https://github.com/niichiro/nucleus.git
-cd nucleus
-# Сборка ядра
-cargo build --release -p nucleusd
-# Запуск сервера
-./target/release/nucleusd --data-dir /var/lib/nucleus
+cargo run --release -p nucleus-ctl -- --http http://localhost:3000 query        # все устройства
+cargo run --release -p nucleus-ctl -- --http http://localhost:3000 on lamp:rgb  # включить
+cargo run --release -p nucleus-ctl -- --http http://localhost:3000 level lamp:rgb 128
+# BLE-режим (после M3): те же команды без --http, узел ищется рекламой «nu»
+```
+
+### Веб-интерфейсы
+
+- `http://localhost:3000/api/devices` — REST-диагностика nucleusd:
+  `GET /api/devices`, `GET /api/devices/{id}`, `POST /api/devices/{id}/set` с `{"on": true}` / `{"level": 128}` / `{"value": 22.5}`
+- `http://localhost:8080` — zigbee2mqtt: карта сети, спаривание (Permit join),
+  переименование устройств, настройки стика
+
+### Логи
+
+| Сервис | Где смотреть |
+|---|---|
+| nucleusd | консоль + `<data-dir>\logs
+ucleusd.log.<ГГГГ-ММ-ДД>` (суточная ротация); уровень через `RUST_LOG` (напр. `RUST_LOG=debug`) |
+| zigbee2mqtt | консоль + `C:\zigbee2mqtt\data\log.log` |
+| mosquitto | статус сервиса: `sc query mosquitto` |
+
+### MQTT-топики (брокер localhost:1883)
+
+| Топик | Направление | Смысл |
+|---|---|---|
+| `nucleus/{id}/set` | → | команда устройству (JSON как у HTTP); исполняется из любого канала |
+| `nucleus/{id}/state` | ← | состояние после изменения любым каналом (HTTP / BLE / MQTT) |
+| `zigbee2mqtt/{id}` | ← | состояние zigbee-устройства (retained: `state`, `brightness`, `linkquality`) |
+| `zigbee2mqtt/{id}/set` | → | прямая команда шлюзу (в обход Nucleus) |
+| `zigbee2mqtt/bridge/state` | ← | online/offline шлюза |
+| `zigbee2mqtt/bridge/devices` | ← | список zigbee-устройств (retained, десятки КБ) |
+
+Служебные запросы шлюзу:
+
+```bash
+mosquitto_pub -t zigbee2mqtt/bridge/request/permit_join -m '{"value":true,"time":254}'
+mosquitto_pub -t zigbee2mqtt/bridge/request/device/rename -m '{"from":"0x0000...","to":"lamp:bed"}'
+```
+
+**Имя устройства (friendly_name) в zigbee2mqtt = device_id в Nucleus.**
+
+### Наблюдение в реальном времени (Git Bash)
+
+```bash
+M="/c/Program Files/mosquitto"
+"$M/mosquitto_sub.exe" -h localhost -t 'nucleus/#' -v          # все события Nucleus
+"$M/mosquitto_sub.exe" -h localhost -t 'zigbee2mqtt/lamp:rgb' -v
+tail -f /c/zigbee2mqtt/data/log.log                            # лог шлюза
+tail -f /c/nucleus/logs/nucleusd.log.*                         # лог сервера
+```
+
+### Важные файлы
+
+- `<data-dir>\state.json` — виртуальные устройства и сцены nucleusd (переживает рестарт)
+- `C:\zigbee2mqtt\data\configuration.yaml` — конфиг шлюза (порт стика, adapter) и база спаренных устройств
+- `C:\zigbee2mqtt\data\coordinator_backup.json` — бэкап Zigbee-сети с ключами; не терять
