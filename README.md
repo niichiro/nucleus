@@ -78,8 +78,7 @@ Nucleus базируется на трёх типах узлов и трёх б�
 
 | Сервис | Роль | Адрес / порт | Запуск |
 |---|---|---|---|
-| **nucleusd** | Сервер Nucleus: устройства, HTTP API, состояние, логи, mDNS | HTTP `:3000`; mDNS `_nucleus._tcp.local.` | `cargo run --release -p nucleusd -- --data-dir C:
-ucleus` |
+| **nucleusd** | Сервер Nucleus: устройства, HTTP API, состояние, логи, mDNS | HTTP `:3000`; mDNS `_nucleus._tcp.local.` | `cargo run --release -p nucleusd -- --data-dir C:\nucleus` |
 | **mosquitto** | MQTT-брокер (сервис Windows) | `localhost:1883`, анонимно локально | сервис; `net stop/start mosquitto` (админ) |
 | **zigbee2mqtt** | Zigbee-шлюз: USB-стик ↔ MQTT | веб-морда `:8080`; стик `COM3` (`adapter: ember`) | `cd C:\zigbee2mqtt && npm start` |
 
@@ -105,8 +104,7 @@ cargo run --release -p nucleus-ctl -- --http http://localhost:3000 level lamp:rg
 
 | Сервис | Где смотреть |
 |---|---|
-| nucleusd | консоль + `<data-dir>\logs
-ucleusd.log.<ГГГГ-ММ-ДД>` (суточная ротация); уровень через `RUST_LOG` (напр. `RUST_LOG=debug`) |
+| nucleusd | консоль + `<data-dir>\logs\nucleusd.log.<ГГГГ-ММ-ДД>` (суточная ротация); уровень через `RUST_LOG` (напр. `RUST_LOG=debug`) |
 | zigbee2mqtt | консоль + `C:\zigbee2mqtt\data\log.log` |
 | mosquitto | статус сервиса: `sc query mosquitto` |
 
