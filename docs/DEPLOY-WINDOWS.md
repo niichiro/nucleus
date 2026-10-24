@@ -19,36 +19,39 @@ cargo run --release -p nucleusd -- --data-dir "C:\nucleus" --http-port 3000
 
 ## 2. mosquitto (MQTT-брокер)
 
-1. Скачать и установить mosquitto (mosquitto.org, в установщике отметить «service»).
-2. `C:\Program Files\mosquitto\mosquitto.conf` — добавить:
-
-```
-listener 1883
-allow_anonymous true
+```bash
+winget install --id EclipseFoundation.Mosquitto --silent
 ```
 
-3. Перезапустить службу: `net stop mosquitto && net start mosquitto` (от администратора).
+Сервис ставится и стартует сам; правка конфига не нужна — локальные (localhost)
+анонимные подключения разрешены из коробки, а всё живёт на одном ПК.
 
-Проверка: `mosquitto_sub -t 'nucleus/#' -v` — при изменении лампы появятся `nucleus/lamp:living/state`.
+Проверка roundtrip (sub в фоне → pub):
+
+```bash
+M="/c/Program Files/mosquitto"
+($M/mosquitto_sub.exe -h localhost -t 'nucleus/#' -v -C 1 & sleep 1; $M/mosquitto_pub.exe -h localhost -t nucleus/test -m ok)
+```
 
 ## 3. zigbee2mqtt + Zigbee-стик
 
-1. Установить Node.js LTS (nodejs.org).
-2. Скачать zigbee2mqtt (zip с github.com/Koenkk/zigbee2mqtt) и распаковать, например, в `C:\zigbee2mqtt`.
-3. `C:\zigbee2mqtt\data\configuration.yaml`:
+1. Node.js ≥ 18 (уже стоит? `node --version`).
+2. `git clone --depth 1 https://github.com/Koenkk/zigbee2mqtt.git C:\zigbee2mqtt && cd C:\zigbee2mqtt && npm install`
+3. Разрешить нативный serialport: `npm approve-scripts @serialport/bindings-cpp`.
+4. `C:\zigbee2mqtt\data\configuration.yaml`:
 
 ```yaml
 mqtt:
   server: mqtt://localhost:1883
 serial:
-  adapter: zstack      # подберите по стику: см. «Замечания» внизу
-  port: COM3           # номер порта стика (Диспетчер устройств → Порты)
+  adapter: ember        # Sonoff ZBDongle-Plus-E; TI-стики → zstack, ConBee → conbee
+  port: COM3            # номер порта стика (Диспетчер устройств → Порты)
 frontend:
-  enabled: true        # веб-морда http://localhost:8080 — спаривание и переименование
-permit_join: false     # включать true только на время добавления устройств
+  enabled: true         # веб-морда http://localhost:8080 — спаривание и переименование
+permit_join: false      # включать true только на время добавления устройств
 ```
 
-4. Запуск: `cd C:\zigbee2mqtt && npm start`.
+5. Запуск: `cd C:\zigbee2mqtt && npm start`.
 
 ## 4. Связка
 
