@@ -2,10 +2,11 @@
 name = "nucleus-node"
 version = "0.1.0"
 edition = "2021"
-description = "Прошивка узла Nucleus для ESP32-C3: BLE-периферия + ESP-NOW mesh"
+description = "Прошивка узла Nucleus для ESP32-C3: BLE-периферия + ESP-NOW mesh (esp-hal, стабильный Rust)"
 
-# Отдельный от crates/* workspace: esp-idf собирается собственным тулчейном
-# (riscv32imc-esp-espidf + ldproxy), корневой workspace его исключает.
+# Отдельный от crates/* workspace: прошивка собирается под riscv32imc-unknown-none-elf.
+# Стек: esp-hal + esp-radio (преемник esp-wifi) + esp-rtos (embassy-рантайм)
+#       + trouble-host (BLE-хост на чистом Rust, GATT-сервер).
 
 [[bin]]
 name = "nucleus-node"
@@ -13,12 +14,39 @@ path = "src/main.rs"
 
 [dependencies]
 nucleus-core = { path = "../crates/nucleus-core" }
-esp-idf-svc = { version = "0.51", features = ["binstart"] }
-esp32-nimble = { version = "0.12", features = ["esp-idf-svc"] }
+esp-bootloader-esp-idf = { version = "0.5", features = ["esp32c3"] }
+esp-backtrace = { version = "0.19", features = ["esp32c3", "panic-handler", "println"] }
+esp-hal = { version = "1.1", features = ["esp32c3", "unstable", "log-04"] }
+esp-alloc = "0.10"
+esp-println = { version = "0.17", features = ["esp32c3", "log-04"] }
+esp-radio = { version = "1.0.0-beta.0", features = [
+    "esp32c3",
+    "ble",
+    "esp-now",
+    "coex",
+    "log-04",
+    "unstable",
+] }
+esp-rtos = { version = "0.3", features = [
+    "esp32c3",
+    "embassy",
+    "esp-alloc",
+    "esp-radio",
+    "log-04",
+] }
+trouble-host = "0.8"
+embassy-executor = "0.10"
+embassy-futures = "0.1"
+embassy-sync = "0.8"
+embassy-time = "0.5"
+heapless = "0.9"
+async-trait = "0.1"
 log = "0.4"
-
-[build-dependencies]
-embuild = "0.33"
+static_cell = "2.1.1"
 
 [profile.release]
+opt-level = "s"
+lto = true
+
+[profile.dev]
 opt-level = "s"

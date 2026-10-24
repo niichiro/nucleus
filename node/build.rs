@@ -1,4 +1,4 @@
-// node/build.rs — сборка ESP-IDF через embuild (нативный билдер esp-idf-svc).
+// node/build.rs — линкер-скрипт esp-hal (как в примерах trouble/esp-rs).
 fn main() {
-    embuild::espidf::sysenv::emit();
+    println!("cargo::rustc-link-arg-bins=-Tlinkall.x");
 }

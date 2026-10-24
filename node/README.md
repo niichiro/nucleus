@@ -19,10 +19,11 @@ flooding — движок `crates/nucleus-core`, тот же, что у серв
 ## Первая сборка (один раз)
 
 ```bash
-rustup target add riscv32imc-esp-espidf
+rustup toolchain install nightly --component rust-src   # tier-3 цель: std собирается из исходников
 cargo install espflash ldproxy
+# плюс CMake и Ninja (winget install Kitware.CMake Ninja-build.Ninja)
 cd node
-cargo build --release
+cargo +nightly build --release
 ```
 
 Первая сборка скачает ESP-IDF (~1.5 ГБ) и тулчейн riscv — это разовая
@@ -31,7 +32,7 @@ cargo build --release
 ## Прошивка и монитор
 
 ```bash
-cargo run --release          # espflash: выберет COM-порт платы, зальёт, откроет монитор
+cargo +nightly run --release          # espflash: выберет COM-порт платы, зальёт, откроет монитор
 ```
 
 ## Схема роли узла
