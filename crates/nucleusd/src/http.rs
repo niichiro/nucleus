@@ -9,7 +9,7 @@ use axum::{
 };
 use serde::Serialize;
 
-use crate::devices::{DeviceManager, SetBody};
+use crate::devices::{AnyDevice, DeviceManager, SetBody, SetError};
 
 /// DTO устройства для HTTP API.
 #[derive(Serialize)]
@@ -17,6 +17,7 @@ pub struct DeviceDto {
     pub id: String,
     pub name: String,
     pub kind: String,
+    pub source: &'static str,
     pub state: nucleus_core::DeviceState,
 }
 
@@ -36,12 +37,12 @@ pub async fn serve(manager: DeviceManager, port: u16) -> std::io::Result<()> {
 }
 
 async fn list_devices(State(manager): State<DeviceManager>) -> Json<Vec<DeviceDto>> {
-    Json(manager.entries().into_iter().map(device_dto).collect())
+    Json(manager.list().into_iter().map(device_dto).collect())
 }
 
 async fn get_device(State(manager): State<DeviceManager>, Path(id): Path<String>) -> Response {
-    match manager.entries().into_iter().find(|e| e.id == id) {
-        Some(entry) => Json(device_dto(entry)).into_response(),
+    match manager.list().into_iter().find(|d| d.id == id) {
+        Some(device) => Json(device_dto(device)).into_response(),
         None => not_found(&id),
     }
 }
@@ -63,33 +64,43 @@ async fn set_device(
             .into_response();
     };
 
-    match manager.set(&id, &action) {
+    match manager.set(&id, &action).await {
         Ok(state) => {
-            let entry = manager
-                .entries()
+            let AnyDevice {
+                id: device_id,
+                name,
+                kind,
+                source,
+                ..
+            } = manager
+                .list()
                 .into_iter()
-                .find(|e| e.id == id)
+                .find(|d| d.id == id)
                 .expect("device existed during set");
-            Json(device_dto_with_state(entry, state)).into_response()
+            Json(DeviceDto {
+                id: device_id,
+                name,
+                kind,
+                source,
+                state,
+            })
+            .into_response()
         }
-        Err(_) => not_found(&id),
+        Err(SetError::NotFound(_)) => not_found(&id),
+        Err(SetError::NotSupported(msg)) => (StatusCode::BAD_REQUEST, msg).into_response(),
+        Err(SetError::Mqtt(msg)) => {
+            (StatusCode::BAD_GATEWAY, format!("mqtt: {msg}")).into_response()
+        }
     }
 }
 
-fn device_dto(entry: crate::state::DeviceEntry) -> DeviceDto {
-    let state = entry.device_state();
-    device_dto_with_state(entry, state)
-}
-
-fn device_dto_with_state(
-    entry: crate::state::DeviceEntry,
-    state: nucleus_core::DeviceState,
-) -> DeviceDto {
+fn device_dto(device: AnyDevice) -> DeviceDto {
     DeviceDto {
-        id: entry.id,
-        name: entry.name,
-        kind: entry.kind,
-        state,
+        id: device.id,
+        name: device.name,
+        kind: device.kind,
+        source: device.source,
+        state: device.state,
     }
 }
 

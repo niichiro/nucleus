@@ -1,7 +1,9 @@
-//! Демон Nucleus для Orange Pi: BLE-периферия, устройства, HTTP/MQTT, mDNS.
+//! Сервер Nucleus: устройства (виртуальные + Zigbee), HTTP API, MQTT-мост, mDNS.
 //!
-//! Сетевые роли: этот узел всегда BLE-**периферия** (телефоны и ESP32 — централы).
+//! Роли: BLE-периферия — только с feature `ble-peripheral` (Linux/BlueZ);
+//! в M3 появится BLE-централ (btleplug) для подключения к узлам mesh.
 
+#[cfg(feature = "ble-peripheral")]
 pub mod ble;
 pub mod config;
 pub mod devices;

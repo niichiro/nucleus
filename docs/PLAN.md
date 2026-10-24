@@ -1,8 +1,27 @@
 # План реализации Nucleus
 
-Зафиксированная версия плана (одобрен 2026-10-23). Живой документ: обновлять по мере прохождения этапов. ТЗ — корневой `README.md`.
+План одобрен 2026-10-23; топология пересмотрена 2026-10-24 (Orange Pi исключена, сервер — домашний ПК). Живой документ. ТЗ — корневой `README.md`.
 
-> ℹ️ Вся аппаратура в наличии (2026-10): Zigbee-стик и ESP32-C6 получены — M2/M3 не привязаны к поставкам. Блокер только один: приёмка M1 на реальном Orange Pi.
+> ℹ️ Аппаратура в наличии: Zigbee-стик + 2× ESP32-C3 Super Mini. Orange Pi Zero 3 не заработала и исключена из схемы. M0/M1 код готов и запушен; CI зелёный.
+
+## Топология (2026-10-24)
+
+```
+телефон ──BLE──► ESP32-C3 #1 ──ESP-NOW──► ESP32-C3 #2
+                                                │ BLE (ПК — централ, как телефон)
+                                                ▼
+  ПК: nucleusd ◄──► mosquitto ◄──► zigbee2mqtt ──► стик ──► Zigbee-устройства
+           │
+           └── состояние, логи, HTTP API, мониторинг
+```
+
+Принципы white-box (зафиксированы в README):
+- ни одного дата-кабеля в эксплуатации: узлы — только питание, стик — в сервере;
+- телефон — основной интерфейс; сервер — фоновый софт;
+- обнаружение автоматическое (BLE-реклама, mDNS), без ввода адресов.
+
+Опция на будущее: любой Linux-мини-сервер встаёт на место ПК без переделок —
+nucleusd Linux-ready (feature `ble-peripheral`, bluer).
 
 ## Целевая структура
 
@@ -10,56 +29,54 @@
 nucleus/
 ├── Cargo.toml              # workspace: crates/*; node/ и app/ исключены
 ├── crates/
-│   ├── nucleus-core/       # no_std: протокол + движок (слияние mesh + core)
-│   └── nucleusd/           # демон Orange Pi (lib + bin, Фаза 0)
-├── node/                   # вне workspace: esp-idf прошивка ESP32-C6 (Фаза 2)
-└── app/                    # вне workspace: Yew/WebBluetooth UI (Фаза 3)
+│   ├── nucleus-core/       # no_std: протокол + движок (messages/codec/routing/transport/engine)
+│   ├── nucleusd/           # сервер (Windows/Linux): ble-централ(M3), devices, state, http, mqtt, mdns
+│   └── nucleus-ctl/        # CLI: BLE-централ + HTTP-режим (Windows/Linux/macOS)
+├── node/                   # вне workspace: esp-idf прошивка ESP32-C3 (Фаза 2)
+└── app/                    # вне workspace: UI (Фаза 3)
 ```
 
 ## Этапы
 
-### M0 — Фундамент протокола ✅ (завершён 2026-10-23)
-- Слияние nucleus-mesh + nucleus-core → crates/nucleus-core; вынос nucleus-node → node/, nucleus-app → app/.
-- Кадрирование `[magic, version, payload]` поверх postcard; несовпадение версии = drop + лог.
-- Настраиваемые LRU/TTL в FloodRouter; реальный TransportError.
-- Тесты: roundtrip, TTL/дедуп, версионирование, интеграция двух движков через in-memory Transport.
-- CI (GitHub Actions): fmt, clippy -D warnings, test. `[workspace.lints]`, thiserror v2.
+### M0 — Фундамент протокола ✅ (2026-10-23)
+Слияние mesh+core → crates/nucleus-core; кадрирование `[magic, version, payload]`;
+настраиваемый FloodRouter; TransportError; тесты (roundtrip, TTL/дедуп, in-memory
+интеграция); CI + `[workspace.lints]` + thiserror v2.
 
-### M1 — Фаза 0 «Виртуальный дом» ✅ (реализован 2026-10-23; приёмка на Orange Pi — по деплою)
-- Рефакторинг nucleusd: lib + тонкий bin, модули ble/config/devices/http/mdns/mqtt/state.
-- Трейт `DeviceExecutor` в nucleus-core: Ack несёт new_state, Query идёт через executor.
-- Виртуальные устройства (state.json, формат сохранён), атомарный снапшот (tmp+rename), `--data-dir`.
-- HTTP API (axum 0.8): GET /api/devices, GET/POST /api/devices/{id}/set.
-- MQTT-мост (rumqttc): `nucleus/{id}/set` ↔ `nucleus/{id}/state`, живёт с ретраями.
-- BLE: write для Command, notify для Ack через CharacteristicWriter; сессии чтения переживают несколько записей.
-- Rolling-логи (tracing-appender, сутки) + консоль; mDNS `_nucleus._tcp.local.`.
-- Новый крейт **nucleus-ctl** (btleplug, Windows/Linux/macOS): `discover`, `on/off/level`, `query`.
-- Удалены models.rs и старые JSON-типы. systemd-юнит `deploy/nucleusd.service`, инструкция `docs/DEPLOY.md`.
+### M1 — Фаза 0 «Виртуальный дом» ✅ код (2026-10-23)
+nucleusd lib+bin (ble/config/devices/http/mqtt/mdns/state); DeviceExecutor в движке;
+виртуальные устройства (state.json, атомарный снапшот); HTTP API + MQTT-мост;
+rolling-логи + mDNS; nucleus-ctl (btleplug). Приёмка на Orange Pi отменена
+(плата исключена); виртуальные устройства принимаются в составе M2 на ПК.
 
-Приёмка: с ноутбука nucleus-ctl включает виртуальную лампу на Orange Pi по BLE, видит Ack с новым состоянием; состояние переживает рестарт; демон находится по mDNS; логи ротируются.
+### M2 — Фаза 1 «Железо оживает» (текущий): Zigbee на ПК
+1. nucleusd: bluer за cargo-feature `ble-peripheral` (по умолчанию off) — сервер
+   собирается и работает на Windows.
+2. `docs/DEPLOY-WINDOWS.md`: mosquitto + zigbee2mqtt (Node.js) нативно, конфиг стика.
+3. Zigbee-устройства в DeviceManager: топики `zigbee2mqtt/bridge/devices` (список)
+   и `zigbee2mqtt/<id>` (состояние); команды → `zigbee2mqtt/<id>/set`;
+   маппинг exposed → Action; friendly_name = device_id.
+4. nucleus-ctl: режим `--http <url>` — приёмка без BLE.
 
-### M2 — Фаза 1 «Железо оживает» (следующий этап; Zigbee-стик получен 2026-10)
-- zigbee-драйвер `DeviceDriver` поверх MQTT-топиков zigbee2mqtt.
-- Реконсиляция состояния при старте (Query реальных состояний → снапшот).
+Приёмка: `nucleus-ctl --http on <zigbee-устройство>` → физическое устройство
+реагирует; состояние в снапшоте; MQTT `nucleus/*` отражает изменения.
 
-Приёмка: телефон → BLE → nucleusd → MQTT → zigbee2mqtt → физическое устройство; Ack возвращает фактическое состояние.
-
-### M3 — Фаза 2 «Настоящая mesh» (ESP32-C6 получены 2026-10; старт после M2)
-- node/ как отдельный esp-idf workspace: ESP-NOW-транспорт (кадры ≤ 250 байт) + BLE-периферия (NimBLE), движок из nucleus-core.
-- Роли зафиксированы: Orange Pi всегда BLE-периферия; телефоны и ESP32 — централы.
-- Flooding на железе: дедуп по id, TTL. Подписи Ed25519 (snow), анти-replay (timestamp + дедуп).
-
-Приёмка: цепочка «телефон → ESP32 → ESP-NOW → … → Orange Pi → Zigbee-устройство».
+### M3 — Фаза 2 «Настоящая mesh» (после M2): ESP32-C3
+1. `node/` — отдельный esp-idf workspace: BLE-периферия (NimBLE, единый GATT-профиль)
+   + ESP-NOW flooding поверх движка nucleus-core.
+2. nucleusd: транспорт `BleCentralTransport` (btleplug) — ПК подключается к узлу
+   как централ (переиспользовать логику nucleus-ctl).
+3. Приёмка: телефон/ctl ─BLE─► C3#1 ─ESP-NOW─► C3#2 ─BLE─► ПК ─► Zigbee-лампа,
+   без единого дата-кабеля.
+4. Мониторинг на ПК поверх HTTP API (полный UI — Фаза 3).
 
 ### M4 — Фаза 3 «Полная автономия»
-- Сценарии: локальные на OP → распределённые на ESP32 без OP; синхронизация Query/Response, конфликты — LWW по timestamp.
-- OTA: сообщения Reboot/OTA, esp_ota, подписанные образы.
-- Log push/pull полностью: критичные события сразу, журналы по запросу (OP — хранитель).
-- UI: app/ (Yew + Web Bluetooth) или пересмотр (iOS Web Bluetooth не поддерживает).
+Сценарии на узлах без сервера (компенсация выключаемого ПК; LWW по timestamp);
+OTA (подписанные образы); log push/pull; UI (Yew + Web Bluetooth или Tauri).
 
 ## Сквозные решения
-- Всё ниже `Transport` тестируется на хосте с моками; BLE e2e — вручную (в CI BlueZ нет).
-- Конфигурация: TOML + clap; dotenvy убран.
-- Из зависимостей nucleusd удалены: dbus*, libc, tower, dotenvy, anyhow, pin-project, tokio-stream.
-- Разработка с Windows: протокол/движок — локально; демон — на Orange Pi или Linux (WSL2 для BLE не годится).
-- Язык: проза (README, комментарии) — русская; идентификаторы и тексты ошибок — английские.
+- Всё ниже `Transport` тестируется на хосте; BLE e2e — вручную.
+- Конфигурация: TOML + clap; MQTT-брокер опционален на этапе M2 (ретраи с warning).
+- nucleusd на Windows = HTTP/MQTT/Zigbee; BLE-периферия (bluer) и BLE-централ
+  (btleplug, M3) — независимые транспорты одного движка.
+- Язык: проза (README, комментарии) — русская; идентификаторы и ошибки — английские.

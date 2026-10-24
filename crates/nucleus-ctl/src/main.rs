@@ -27,6 +27,10 @@ struct Cli {
     #[arg(long, global = true)]
     peer: Option<String>,
 
+    /// HTTP-режим: адрес сервера (например http://192.168.1.5:3000), без BLE
+    #[arg(long, global = true, conflicts_with = "peer")]
+    http: Option<String>,
+
     /// Таймаут поиска узла, секунды
     #[arg(long, default_value = "5", global = true)]
     scan_timeout: u64,
@@ -56,20 +60,57 @@ enum Cmd {
 async fn main() -> Result<()> {
     let Cli {
         peer,
+        http,
         scan_timeout,
         command,
     } = Cli::parse();
     match command {
         Cmd::Discover => discover().await,
-        Cmd::On { device } => send_command(&peer, scan_timeout, device, Action::OnOff(true)).await,
+        Cmd::On { device } => {
+            send_command(&peer, &http, scan_timeout, device, Action::OnOff(true)).await
+        }
         Cmd::Off { device } => {
-            send_command(&peer, scan_timeout, device, Action::OnOff(false)).await
+            send_command(&peer, &http, scan_timeout, device, Action::OnOff(false)).await
         }
         Cmd::Level { device, level } => {
-            send_command(&peer, scan_timeout, device, Action::SetLevel(level)).await
+            send_command(&peer, &http, scan_timeout, device, Action::SetLevel(level)).await
         }
-        Cmd::Query { devices } => query(&peer, scan_timeout, devices).await,
+        Cmd::Query { devices } => query(&peer, &http, scan_timeout, devices).await,
     }
+}
+
+/// Команда по HTTP (сервер без BLE) — тело как у HTTP API сервера.
+fn http_set(base: &str, device: &str, action: &Action) -> Result<()> {
+    let body = match action {
+        Action::OnOff(v) => serde_json::json!({ "on": v }),
+        Action::SetLevel(l) => serde_json::json!({ "level": l }),
+        Action::SetValue(x) => serde_json::json!({ "value": x }),
+    };
+    let url = format!("{base}/api/devices/{device}/set");
+    let response = ureq::post(&url)
+        .send_json(body)
+        .with_context(|| format!("HTTP {url}"))?;
+    println!("{}", response.into_string()?);
+    Ok(())
+}
+
+/// Состояние устройств по HTTP.
+fn http_query(base: &str, devices: &[String]) -> Result<()> {
+    let urls: Vec<String> = if devices.is_empty() {
+        vec![format!("{base}/api/devices")]
+    } else {
+        devices
+            .iter()
+            .map(|d| format!("{base}/api/devices/{d}"))
+            .collect()
+    };
+    for url in urls {
+        let response = ureq::get(&url)
+            .call()
+            .with_context(|| format!("HTTP {url}"))?;
+        println!("{}", response.into_string()?);
+    }
+    Ok(())
 }
 
 fn now_millis() -> u64 {
@@ -195,10 +236,14 @@ async fn exchange(
 
 async fn send_command(
     peer: &Option<String>,
+    http: &Option<String>,
     scan_timeout: u64,
     device: String,
     action: Action,
 ) -> Result<()> {
+    if let Some(base) = http {
+        return http_set(base, &device, &action);
+    }
     let adapter = ble_adapter().await?;
     let node = find_node(&adapter, peer.as_deref(), Duration::from_secs(scan_timeout)).await?;
     println!("узел: {}", node.address());
@@ -237,7 +282,15 @@ async fn send_command(
     }
 }
 
-async fn query(peer: &Option<String>, scan_timeout: u64, devices: Vec<String>) -> Result<()> {
+async fn query(
+    peer: &Option<String>,
+    http: &Option<String>,
+    scan_timeout: u64,
+    devices: Vec<String>,
+) -> Result<()> {
+    if let Some(base) = http {
+        return http_query(base, &devices);
+    }
     let adapter = ble_adapter().await?;
     let node = find_node(&adapter, peer.as_deref(), Duration::from_secs(scan_timeout)).await?;
     println!("узел: {}", node.address());
