@@ -9,7 +9,7 @@ BLE на сервере не нужен: узлы ESP32 — BLE-перифери
 
 ```bash
 cargo build --release -p nucleusd          # без BLE — работает на Windows
-cargo run --release -p nucleusd -- --data-dir "C:\nucleus" --http-port 3000
+cargo run --release -p nucleusd -- --data-dir "G:\Soft\nucleus-data" --http-port 3000
 ```
 
 Флаги: `--data-dir` (state.json + логи), `--config nucleusd.toml`, `--mqtt-broker 127.0.0.1:1883`, `--no-mdns`.
@@ -36,9 +36,9 @@ M="/c/Program Files/mosquitto"
 ## 3. zigbee2mqtt + Zigbee-стик
 
 1. Node.js ≥ 18 (уже стоит? `node --version`).
-2. `git clone --depth 1 https://github.com/Koenkk/zigbee2mqtt.git C:\zigbee2mqtt && cd C:\zigbee2mqtt && npm install`
+2. `git clone --depth 1 https://github.com/Koenkk/zigbee2mqtt.git G:\Soft\zigbee2mqtt && cd G:\Soft\zigbee2mqtt && npm install`
 3. Разрешить нативный serialport: `npm approve-scripts @serialport/bindings-cpp`.
-4. `C:\zigbee2mqtt\data\configuration.yaml`:
+4. `G:\Soft\zigbee2mqtt\data\configuration.yaml`:
 
 ```yaml
 mqtt:
@@ -51,7 +51,7 @@ frontend:
 permit_join: false      # включать true только на время добавления устройств
 ```
 
-5. Запуск: `cd C:\zigbee2mqtt && npm start`.
+5. Запуск: `cd G:\Soft\zigbee2mqtt && npm start`.
 
 ## 4. Связка
 
@@ -81,7 +81,7 @@ cargo run --release -p nucleus-ctl -- --http http://localhost:3000 query
 ## 6. Автостарт (постоянная эксплуатация)
 
 nssm (nssm.cc) или Планировщик заданий: службы `nucleusd`, `mosquitto`, `zigbee2mqtt`
-(zigbee2mqtt: `nssm install zigbee2mqtt "C:\Program Files\nodejs\npm.cmd" "start"`, рабочая папка `C:\zigbee2mqtt`).
+(zigbee2mqtt: `nssm install zigbee2mqtt "C:\Program Files\nodejs\npm.cmd" "start"`, рабочая папка `G:\Soft\zigbee2mqtt`).
 
 ## Замечания
 

@@ -78,9 +78,9 @@ Nucleus базируется на трёх типах узлов и трёх б�
 
 | Сервис | Роль | Адрес / порт | Запуск |
 |---|---|---|---|
-| **nucleusd** | Сервер Nucleus: устройства, HTTP API, состояние, логи, mDNS | HTTP `:3000`; mDNS `_nucleus._tcp.local.` | `cargo run --release -p nucleusd -- --data-dir C:\nucleus` |
+| **nucleusd** | Сервер Nucleus: устройства, HTTP API, состояние, логи, mDNS | HTTP `:3000`; mDNS `_nucleus._tcp.local.` | `cargo run --release -p nucleusd -- --data-dir G:\Soft\nucleus-data` |
 | **mosquitto** | MQTT-брокер (сервис Windows) | `localhost:1883`, анонимно локально | сервис; `net stop/start mosquitto` (админ) |
-| **zigbee2mqtt** | Zigbee-шлюз: USB-стик ↔ MQTT | веб-морда `:8080`; стик `COM3` (`adapter: ember`) | `cd C:\zigbee2mqtt && npm start` |
+| **zigbee2mqtt** | Zigbee-шлюз: USB-стик ↔ MQTT | веб-морда `:8080`; стик `COM3` (`adapter: ember`) | `cd G:\Soft\zigbee2mqtt && npm start` |
 
 Флаги nucleusd: `--data-dir` (state.json + логи), `--config <toml>`, `--http-port`, `--mqtt-broker`, `--no-mdns`.
 
@@ -105,7 +105,7 @@ cargo run --release -p nucleus-ctl -- --http http://localhost:3000 level lamp:rg
 | Сервис | Где смотреть |
 |---|---|
 | nucleusd | консоль + `<data-dir>\logs\nucleusd.log.<ГГГГ-ММ-ДД>` (суточная ротация); уровень через `RUST_LOG` (напр. `RUST_LOG=debug`) |
-| zigbee2mqtt | консоль + `C:\zigbee2mqtt\data\log.log` |
+| zigbee2mqtt | консоль + `G:\Soft\zigbee2mqtt\data\log.log` |
 | mosquitto | статус сервиса: `sc query mosquitto` |
 
 ### MQTT-топики (брокер localhost:1883)
@@ -134,12 +134,12 @@ mosquitto_pub -t zigbee2mqtt/bridge/request/device/rename -m '{"from":"0x0000...
 M="/c/Program Files/mosquitto"
 "$M/mosquitto_sub.exe" -h localhost -t 'nucleus/#' -v          # все события Nucleus
 "$M/mosquitto_sub.exe" -h localhost -t 'zigbee2mqtt/lamp:rgb' -v
-tail -f /c/zigbee2mqtt/data/log.log                            # лог шлюза
-tail -f /c/nucleus/logs/nucleusd.log.*                         # лог сервера
+tail -f /g/Soft/zigbee2mqtt/data/log.log                            # лог шлюза
+tail -f /g/Soft/nucleus-data/logs/nucleusd.log.*                         # лог сервера
 ```
 
 ### Важные файлы
 
 - `<data-dir>\state.json` — виртуальные устройства и сцены nucleusd (переживает рестарт)
-- `C:\zigbee2mqtt\data\configuration.yaml` — конфиг шлюза (порт стика, adapter) и база спаренных устройств
-- `C:\zigbee2mqtt\data\coordinator_backup.json` — бэкап Zigbee-сети с ключами; не терять
+- `G:\Soft\zigbee2mqtt\data\configuration.yaml` — конфиг шлюза (порт стика, adapter) и база спаренных устройств
+- `G:\Soft\zigbee2mqtt\data\coordinator_backup.json` — бэкап Zigbee-сети с ключами; не терять
